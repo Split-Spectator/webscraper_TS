@@ -104,5 +104,30 @@ export function extractPageData(
   };
 }
 
+export async function getHTML(currentURL: string): Promise<string | undefined> {
+  try {
+    const response = await fetch(currentURL, {
+      headers: {
+        "User-Agent": "BootCrawler/1.0",
+      },
+    });
 
+    if (!response.ok) {
+      console.error(`error: status ${response.status}`);
+      return;
+    }
 
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("text/html")) {
+      console.error(`error: non-HTML content-type: ${contentType}`);
+      return;
+    }
+
+    const body = await response.text();
+    console.log(body);
+    return body;
+  } catch (err) {
+    console.error("error fetching url:", err);
+    return;
+  }
+}

@@ -1,7 +1,8 @@
 import { argv } from 'node:process';
+import { getHTML } from './crawl';
 
 
-function main() {
+async function main() {
     let arg = process.argv;
     let base = arg[2];
     if (arg.length !== 3 ) {
@@ -10,6 +11,8 @@ function main() {
     }
    
     console.log(`Beginning crawl of ${base}`)
+    let html = await getHTML(base);
+    console.log(html);
     process.exit(0);
    }
 
