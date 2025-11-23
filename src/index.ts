@@ -1,5 +1,5 @@
 import { argv } from 'node:process';
-import { getHTML, crawlPage } from './crawl';
+import { crawlSiteAsync } from "./crawl";
 
 
 async function main() {
@@ -11,7 +11,7 @@ async function main() {
     }
    
     console.log(`Beginning crawl of ${base}`)
-    const pages = await crawlPage(base);
+    const pages = await crawlSiteAsync(base);
 
     console.log(pages);;
    }
