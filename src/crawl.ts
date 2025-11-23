@@ -153,31 +153,26 @@ class ConcurrentCrawler {
   private async getHTML(currentURL: string): Promise<string> {
     const { signal } = this.abortController;
     return await this.limit(async () => {
-      let res: Response;
       try {
-        res = await fetch(currentURL, {
+        const res = await fetch(currentURL, {
           headers: { "User-Agent": "BootCrawler/1.0" },
           signal,
         });
-      } catch (err) {
-        if ((err as any)?.name === "AbortError") {
-          throw new Error("Fetch aborted");
+  
+        if (!res.ok) {
+          throw new Error(`HTTP error ${res.status} for ${currentURL}`);
         }
-        throw new Error(`Got Network error: ${(err as Error).message}`);
+  
+        return await res.text();
+      } catch (err: any) {
+        if (err.name === "AbortError") {
+          return "";
+        }
+        throw err;
       }
-
-      if (res.status > 399) {
-        throw new Error(`Got HTTP error: ${res.status} ${res.statusText}`);
-      }
-
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("text/html")) {
-        throw new Error(`Got non-HTML response: ${contentType}`);
-      }
-
-      return res.text();
     });
   }
+  
 
   private async crawlPage(currentURL: string): Promise<void> {
     if (this.shouldStop) return;
@@ -198,9 +193,12 @@ class ConcurrentCrawler {
     let html = "";
     try {
       html = await this.getHTML(currentURL);
-    } catch (err) {
-      console.log(`${(err as Error).message}`);
-      return;
+      if (!html) return; 
+    } catch (err: any) {
+      if (err.name === "AbortError" || err.message === "Fetch aborted") {
+        return;
+      }
+      console.error(`Error crawling ${currentURL}:`, err.message ?? err);
     }
 
     if (this.shouldStop) return;
