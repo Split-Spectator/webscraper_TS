@@ -81,3 +81,28 @@ export function getImagesFromHTML(html: string, baseURL: string): string[] {
   }
   return imageURLs;
 }
+
+
+export type ExtractedPageData = {
+  url: string;
+  h1: string;
+  first_paragraph: string;
+  outgoing_links: string[];
+  image_urls: string[];
+};
+
+export function extractPageData(
+  html: string,
+  pageURL: string,
+): ExtractedPageData {
+  return {
+    url: pageURL,
+    h1: getH1FromHTML(html),
+    first_paragraph: getFirstParagraphFromHTML(html),
+    outgoing_links: getURLsFromHTML(html, pageURL),
+    image_urls: getImagesFromHTML(html, pageURL),
+  };
+}
+
+
+
