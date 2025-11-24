@@ -105,7 +105,7 @@ export function extractPageData(
 
 class ConcurrentCrawler {
   private baseURL: string;
-  private pages: Record<string, number>;
+  private pages: Record<string, ExtractedPageData>;
   private limit: <T>(fn: () => Promise<T>) => Promise<T>;
 
   private maxPages: number;
@@ -128,27 +128,23 @@ class ConcurrentCrawler {
 
   private addPageVisit(normalizedURL: string): boolean {
     if (this.shouldStop) return false;
-
-    if (this.pages[normalizedURL]) {
-      this.pages[normalizedURL]++;
-    } else {
-      this.pages[normalizedURL] = 1;
-    }
-
+  
     if (this.visited.has(normalizedURL)) {
       return false;
     }
-
+  
     if (this.visited.size >= this.maxPages) {
       this.shouldStop = true;
       console.log("Reached maximum number of pages to crawl.");
       this.abortController.abort();
       return false;
     }
-
+  
     this.visited.add(normalizedURL);
     return true;
   }
+
+ 
 
   private async getHTML(currentURL: string): Promise<string> {
     const { signal } = this.abortController;
@@ -189,7 +185,7 @@ class ConcurrentCrawler {
       return;
     }
 
-    console.log(`crawling ${currentURL}`);
+    
     let html = "";
     try {
       html = await this.getHTML(currentURL);
@@ -202,11 +198,12 @@ class ConcurrentCrawler {
     }
 
     if (this.shouldStop) return;
-
-    const nextURLs = getURLsFromHTML(html, this.baseURL);
+    const data = extractPageData(html, currentURL);
+    this.pages[normalizedURL] = data;
+    //const nextURLs = getURLsFromHTML(html, this.baseURL);
 
     const crawlPromises: Promise<void>[] = [];
-    for (const nextURL of nextURLs) {
+    for (const nextURL of data.outgoing_links) {
       if (this.shouldStop) break;
 
       const task = this.crawlPage(nextURL);
@@ -218,7 +215,7 @@ class ConcurrentCrawler {
     await Promise.all(crawlPromises);
   }
 
-  async crawl(): Promise<Record<string, number>> {
+  async crawl(): Promise<Record<string, ExtractedPageData>> {  
     const rootTask = this.crawlPage(this.baseURL);
     this.allTasks.add(rootTask);
     try {
@@ -235,7 +232,7 @@ export async function crawlSiteAsync(
   baseURL: string,
   maxConcurrency: number = 5,
   maxPages: number = 100,
-): Promise<Record<string, number>> {
+): Promise<Record<string, ExtractedPageData>> { 
   const crawler = new ConcurrentCrawler(baseURL, maxConcurrency, maxPages);
   return await crawler.crawl();
 }
